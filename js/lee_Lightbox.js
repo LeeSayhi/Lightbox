@@ -1,8 +1,13 @@
 ;(function($) {
 
 	// 先申明，（构造函数）
-	var LightBox = function() {
+	var LightBox = function(settings) {
 		var that = this;
+
+		this.settings = {
+			speed: 500,
+		}
+		$.extend(this.settings, settings || {})
 
 		// 创建遮罩和弹出框（封装成jQuery对象)
 		this.popupMask = $('<div id="G-lightbox-mask">');  // 遮罩
@@ -40,13 +45,15 @@
 		this.popupMask.click(function() {
 			$(this).fadeOut();
 			that.popupWin.fadeOut();
+			that.clear = false;
 		});
 		this.closeBtn.click(function() {
 			that.popupMask.fadeOut();
 			that.popupWin.fadeOut();
+			that.clear = false;
 		});
 
-		// 绑定上下切换按钮事件
+		// 上下切换按钮事件
 		this.flag = true; 
 		this.nextBtn.hover(function() {
 			if (!$(this).hasClass("disabled") && that.groupDate.length>1) {
@@ -80,6 +87,29 @@
 			}
 		})
 
+		// 窗口调整事件
+		var timer = null;
+		this.clear = false;
+		$(window).resize(function() {
+			if (that.clear) {
+				window.clearTimeout(timer)
+				timer = window.setTimeout(function(){
+					that.loadPicSize(that.groupDate[that.index].src);
+				},300)
+			}	
+		})
+		// 键盘事件
+		$(window).keyup(function(e) {
+		//	console.log(e.which);
+			if (that.clear) {
+				if (e.which == 38 || e.which == 37) {
+				that.prevBtn.click();
+				}
+				if (e.which == 40 || e.which == 39) {
+					that.nextBtn.click();
+				}
+			}
+		})
 	};
 
 
@@ -117,7 +147,7 @@
 				top: -(winHeight/2 + 10),
 			}).animate({
 				top: (winHeight/2 + 10)/2
-			}, function() {
+			}, that.settings.speed, function() {
 				// 加载图片
 				that.loadPicSize(sourceSrc);
 
@@ -158,10 +188,13 @@
 		loadPicSize: function(sourceSrc) {
 			var  that = this;
 
-			that.popupPic.css({
+			this.popupPic.css({
 				width: "auto",
 				height: "auto",
 			}).hide();
+
+			this.picCaptionArea.hide();
+
 			this.preLoadImg(sourceSrc, function() {
 				that.popupPic.attr('src',sourceSrc);
 				var picWidth = that.popupPic.width();
@@ -183,19 +216,20 @@
 			this.picViewArea.animate({
 				width: width-10,
 				height: height-10,
-			});
+			}, that.settings.speed);
 			this.popupWin.animate({
 				width: width,
 				height: height,
 				marginLeft: -(width/2),
 				top: (winHeight - height)/2
-			},function() {
+			}, that.settings.speed, function() {
 				that.popupPic.css({
 					width: width-10,
 					height: height-10,
 				}).fadeIn();
 				that.picCaptionArea.fadeIn();
 				that.flag = true;   // 点击切换按钮等所有东西都加载完之后切换图片（以防高频率点击出现bug）
+				that.clear = true;
 			});
 			// 设置描述文字和当前索引
 			this.captionText.text(this.groupDate[this.index].caption);
@@ -246,8 +280,6 @@
 				var src = this.groupDate[this.index].src;
 				this.loadPicSize(src);
 			}
-			console.log(this.index);
-
 		},
 
 		// 获取数组数据
