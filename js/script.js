@@ -237,7 +237,7 @@
 			else if (dir === "prev") {
 				this.index--;
 				if (this.index <= 0) {
-					this.prevBtn.addClass("disabled").removeClass("lightbox-prev-btn");
+					this.prevBtn.addClass("disabled").removeClass("lightbox-prev-btn-show");
 				}
 				if (this.index != this.groupDate.length-1) {
 					this.nextBtn.removeClass("disabled");
@@ -246,6 +246,7 @@
 				var src = this.groupDate[this.index].src;
 				this.loadPicSize(src);
 			}
+			console.log(this.index);
 
 		},
 
