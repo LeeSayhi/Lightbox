@@ -1,36 +1,35 @@
 ;(function($) {
 
-	// 先申明，（构造函数）
 	var LightBox = function(settings) {
 		var that = this;
 
 		this.settings = {
 			speed: 500,
 		}
-		$.extend(this.settings, settings || {})
+		$.extend(this.settings, settings || {});
 
-		// 创建遮罩和弹出框（封装成jQuery对象)
-		this.popupMask = $('<div id="G-lightbox-mask">');  // 遮罩
-		this.popupWin = $('<div id="G-lightbox-popup">'); // 弹出框
-		// 保存body
+		// 遮罩和弹出框
+		this.popupMask = $('<div id="G-lightbox-mask">');  
+		this.popupWin = $('<div id="G-lightbox-popup">'); 
+
 		this.bodyNode = $(document.body);
-		// 渲染剩余的DOM，并且插入到body
+		// 渲染DOM
 		this.randerDOM();
 
-		this.picViewArea = this.popupWin.find("div.lightbox-pic-view");  // 图片预览区域
-		this.popupPic = this.popupWin.find("img.lightbox-image"); // 图片
+		this.picViewArea = this.popupWin.find("div.lightbox-pic-view");  
+		this.popupPic = this.popupWin.find("img.lightbox-image"); 
 		this.nextBtn = this.popupWin.find("span.lightbox-next-btn");
 		this.prevBtn = this.popupWin.find("span.lightbox-prev-btn");
-		this.picCaptionArea = this.popupWin.find("div.lightbox-pic-caption"); // 图片描述区域
-		this.captionText = this.popupWin.find("p.lightbox-pic-desc"); // 图片描述
-		this.currentIndex = this.popupWin.find("span.lightbox-of-index"); // 当前索引
-		this.closeBtn = this.popupWin.find("span.lightbox-close-btn"); // 关闭按钮
+		this.picCaptionArea = this.popupWin.find("div.lightbox-pic-caption"); 
+		this.captionText = this.popupWin.find("p.lightbox-pic-desc"); 
+		this.currentIndex = this.popupWin.find("span.lightbox-of-index"); 
+		this.closeBtn = this.popupWin.find("span.lightbox-close-btn"); 
 
-		this.groupName = null;  // 定义组名
+		this.groupName = null;  // 组名
 		this.groupDate = [];   // 存贮同组数据
-		// 准备开发时间委托，获取组数据（委托到body）
+
 		this.bodyNode.delegate(".js-lightbox , *[data-role=lightbox]","click",function(){
-			var currentGroupName = $(this).attr("data-group");  // 当前点击的组名
+			var currentGroupName = $(this).attr("data-group");  
 			if (currentGroupName != that.groupName) {
 				that.groupName = currentGroupName;
 				// 根据当前组名获取同一组数据
@@ -70,7 +69,6 @@
 				that.goto("next");
 			}
 		});
-
 		this.prevBtn.hover(function() {
 			if (!$(this).hasClass("disabled") && that.groupDate.length>1) {
 				$(this).addClass("lightbox-prev-btn-show");
@@ -113,8 +111,39 @@
 	};
 
 
-	// 函数的原型（用来封装方法）
 	LightBox.prototype = {
+
+		// 渲染DOM结构
+		randerDOM: function() {
+			var strDom = '<div class="lightbox-pic-view">'+
+							'<span class="lightbox-btn lightbox-prev-btn"></span>'+
+							'<img class="lightbox-image" src="img/1-1.jpg">'+
+							'<span class="lightbox-btn lightbox-next-btn"></span>'+
+						'</div>'+
+						'<div class="lightbox-pic-caption">'+
+							'<div class="lightbox-caption-area">'+
+								'<p class="lightbox-pic-desc"></p>'+
+								'<span class="lightbox-of-index">当前索引：0 of 0</span>'+
+								'<span class="lightbox-close-btn"></span>'+
+							'</div>'+
+						'</div>';
+			this.popupWin.html(strDom);
+			this.bodyNode.append(this.popupMask, this.popupWin);			
+		},
+
+		// 获取数组数据
+		getGroup: function() {
+			var that = this;
+			var groupList = this.bodyNode.find("*[data-group="+this.groupName+"]");
+			that.groupDate.length = 0;  
+			groupList.each(function() {
+				that.groupDate.push({
+					src: $(this).attr("data-source"),
+					id: $(this).attr("data-id"),
+					caption: $(this).attr("data-caption"),
+				})
+			});
+		},		
 
 		// 初始化弹框
 		initPopup: function(currentObj) {
@@ -153,8 +182,8 @@
 
 			});
 
-			this.index = this.getIndexOf(sourceId);  // 根据当前点击的元素ID获取在当前组别里的索引
-			// 判断图片在数组中的位置添加或取消class="disabled"
+			this.index = this.getIndexOf(sourceId);  
+
 			var groupDateLength = this.groupDate.length;
 			if (groupDateLength > 1) {
 				if (this.index === 0 ) {
@@ -184,6 +213,23 @@
 			return index;
 		},
 
+		// 预加载图片
+		preLoadImg: function(sourceSrc, callback) {
+			var img = new Image();
+			img.src = sourceSrc;
+			if (!!window.ActiveXObject) {  // IE
+				img.onreadystatechange = function() {
+					if (this.readyState == "complete") {
+						callback();
+					};
+				}
+			}
+			else{  // 其他
+				img.onload = function() {
+					callback();
+				}
+			}
+		},
 		// 加载图片
 		loadPicSize: function(sourceSrc) {
 			var  that = this;
@@ -208,7 +254,7 @@
 			var that = this;
 			var winWidth = $(window).width();
 			var winHeight = $(window).height();
-			// 如果图片的宽高大于浏览器适口的宽高比例，看看是否溢出
+			// 如果图片的宽高大于浏览器适口的宽高比例
 			var scale = Math.min(winWidth/(width+10), winHeight/(height+10), 1)
 			width = width*scale;
 			height = height*scale;
@@ -228,30 +274,12 @@
 					height: height-10,
 				}).fadeIn();
 				that.picCaptionArea.fadeIn();
-				that.flag = true;   // 点击切换按钮等所有东西都加载完之后切换图片（以防高频率点击出现bug）
+				that.flag = true;   
 				that.clear = true;
 			});
-			// 设置描述文字和当前索引
+
 			this.captionText.text(this.groupDate[this.index].caption);
 			this.currentIndex.text("当前索引: "+(this.index+1)+ " of " +this.groupDate.length);
-		},
-
-		// 监控图片是否加载完成（图片预加载）
-		preLoadImg: function(sourceSrc, callback) {
-			var img = new Image();
-			img.src = sourceSrc;
-			if (!!window.ActiveXObject) {  // IE
-				img.onreadystatechange = function() {
-					if (this.readyState == "complete") {
-						callback();
-					};
-				}
-			}
-			else{  // 其他
-				img.onload = function() {
-					callback();
-				}
-			}
 		},
 
 		// 切换按钮事件
@@ -281,42 +309,6 @@
 				this.loadPicSize(src);
 			}
 		},
-
-		// 获取数组数据
-		getGroup: function() {
-			var that = this;
-			// 根据当前的组别名称获取页面中所有相同组别的对象
-			var groupList = this.bodyNode.find("*[data-group="+this.groupName+"]");
-			that.groupDate.length = 0;  // 添加前先清空数组数据
-			groupList.each(function() {
-				that.groupDate.push({
-					src: $(this).attr("data-source"),
-					id: $(this).attr("data-id"),
-					caption: $(this).attr("data-caption"),
-				})
-			});
-		},
-
-		// 渲染DOM结构
-		randerDOM: function() {
-			var strDom = '<div class="lightbox-pic-view">'+
-							'<span class="lightbox-btn lightbox-prev-btn"></span>'+
-							'<img class="lightbox-image" src="img/1-1.jpg">'+
-							'<span class="lightbox-btn lightbox-next-btn"></span>'+
-						'</div>'+
-						'<div class="lightbox-pic-caption">'+
-							'<div class="lightbox-caption-area">'+
-								'<p class="lightbox-pic-desc"></p>'+
-								'<span class="lightbox-of-index">当前索引：0 of 0</span>'+
-								'<span class="lightbox-close-btn"></span>'+
-							'</div>'+
-						'</div>';
-
-			// 插入到popupWin（弹出框）
-			this.popupWin.html(strDom);
-			// 把遮罩和弹出框插入到body中
-			this.bodyNode.append(this.popupMask, this.popupWin);			
-		}
 	};
 
 	window['LightBox']=LightBox;
